@@ -1,10 +1,10 @@
 use clap::Parser;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Write}; // 增加了 Write trait
 use anyhow::{Context, Result};
-// search for a pattern in a file and display the lines that contain it
+
 #[derive(Parser)]
-struct Cli{
+struct Cli {
     pattern: String,
     path: std::path::PathBuf,
 }
@@ -12,21 +12,31 @@ struct Cli{
 fn main() -> Result<()> {
     let args = Cli::parse();
 
-    // 1. 打开文件：如果失败，会提示具体是哪个路径打不开
+    // 1. 打开文件
     let file = File::open(&args.path)
         .with_context(|| format!("could not open file `{}`", args.path.display()))?;
     
     let reader = BufReader::new(file);
 
+    // --- 优化输出部分 ---
+    // 获取标准输出的句柄并加上缓冲区
+    // 这样可以减少系统调用的次数，在大批量匹配时性能提升显著
+    let stdout = io::stdout();
+    let mut handle = io::BufWriter::new(stdout.lock()); 
+
     // 2. 遍历每一行
     for line in reader.lines() {
-        // 使用 ? 快速处理读取行时的错误
         let line = line.with_context(|| "error reading line from file")?;
         
         if line.contains(&args.pattern) {
-            println!("{}", line);
+            // 使用 writeln! 替代 println!
+            // 注意：如果写入失败，这里会返回错误
+            writeln!(handle, "{}", line).with_context(|| "failed to write to stdout")?;
         }
     }
+
+    // 确保所有缓冲区内容都已刷入终端
+    handle.flush()?;
 
     Ok(()) 
 }
