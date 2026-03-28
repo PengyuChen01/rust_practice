@@ -38,5 +38,17 @@ fn main() -> Result<()> {
     // 确保所有缓冲区内容都已刷入终端
     handle.flush()?;
 
-    Ok(()) 
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cli() {
+        let args = Cli::parse_from(["grrs", "test_pattern", "test_file.txt"]);
+        assert_eq!(args.pattern, "test_pattern");
+        assert_eq!(args.path, std::path::PathBuf::from("test_file.txt"));
+    }
 }
