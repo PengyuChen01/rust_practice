@@ -1,0 +1,3 @@
+name = "from_toml_file"
+foo = 100
+# 故意不设 comfy，让它 fallback 到默认值
